@@ -1,54 +1,50 @@
 use reqwest;
-use std::error::Error;
-use std::time::Duration;
-use std::thread;
+use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
+use tokio::task;
+use anyhow::Result;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    let doge = fetch_data().await?;
-    println!("{:}", doge);
-    
+async fn main() -> Result<()> {
+    let start_time = Instant::now();
+
     let urls = vec![
-        "https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=ETH-USDT".to_string(),
-        "https://api.bitfinex.com/v1/pubticker/ethusd".to_string(),
-        "https://api1.binance.com/api/v3/ticker/price?symbol=ETHUSDT".to_string(),
+        ("Kucoin", "https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=ETH-USDT"),
+        ("Bitfinex", "https://api.bitfinex.com/v1/pubticker/ethusd"),
+        ("Binance", "https://api1.binance.com/api/v3/ticker/price?symbol=ETHUSDT"),
     ];
 
+    let (tx, mut rx) = mpsc::channel::<(String, Duration, String)>(urls.len());
 
-    spawn_threads(urls);
-    
+    for (name, url) in urls {
+        let tx_clone = tx.clone();
+        let url = url.to_string();
+        let name = name.to_string();
+        task::spawn(async move {
+            if let Ok(data) = fetch_data(&url).await {
+                let duration = start_time.elapsed();
+                tx_clone.send((data, duration, name)).await.unwrap();
+            }
+        });
+    }
+
+    drop(tx); // Fermer le canal
+
+    while let Some((data, duration, name)) = rx.recv().await {
+        println!("{} received in {:?}: {}", name, duration, data);
+    }
+
     Ok(())
 }
 
-async fn fetch_data() -> Result<String, Box<dyn Error>> {
+async fn fetch_data(url: &str) -> Result<String> {
     let client = reqwest::Client::new();
-    let doge = client
-        .get("https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=ETH-USDT")
+    let response = client
+        .get(url)
         .timeout(Duration::from_secs(3))
         .send()
         .await?
         .text()
         .await?;
-    Ok(doge)
-}
-
-
-fn spawn_threads(urls: Vec<String>) {
-    let mut handles = vec![];
-
-    for (i, url) in urls.into_iter().enumerate() {
-        let handle = thread::spawn(move || {
-            println!("Thread {} started for URL: {}", i, url);
-            // Simuler une opération longue
-            thread::sleep(Duration::from_secs(2));
-            println!("Thread {} finished for URL: {}", i, url);
-        });
-        handles.push(handle);
-    }
-
-    // Attendre que tous les threads aient terminé
-    for handle in handles {
-        handle.join().unwrap();
-    }
+    Ok(response)
 }
