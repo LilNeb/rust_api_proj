@@ -4,15 +4,27 @@ use tokio::sync::mpsc;
 use tokio::task;
 use anyhow::Result;
 
+mod utils;
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let start_time = Instant::now();
 
+    
+    let arg = "eth-usdt";
+    let kucoin_arg = utils::format_pair("kucoin", arg);
+    let bitfinex_arg = utils::format_pair("bitfinex", arg);
+    let binance_arg = utils::format_pair("binance", arg);
+    println!("Kucoin: {:?}", kucoin_arg);
+    println!("Bitfinex: {:?}", bitfinex_arg);
+    println!("Binance: {:?}", binance_arg);
+
     let urls = vec![
-        ("Kucoin", "https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=ETH-USDT"),
-        ("Bitfinex", "https://api.bitfinex.com/v1/pubticker/ethusd"),
-        ("Binance", "https://api1.binance.com/api/v3/ticker/price?symbol=ETHUSDT"),
+        ("Kucoin", format!("https://api.kucoin.com/api/v1/market/orderbook/level1?symbol={}", kucoin_arg.unwrap())),
+        ("Bitfinex", format!("https://api.bitfinex.com/v1/pubticker/{}", bitfinex_arg.unwrap())),
+        ("Binance", format!("https://api1.binance.com/api/v3/ticker/price?symbol={}", binance_arg.unwrap()))
     ];
+    
 
     let (tx, mut rx) = mpsc::channel::<(String, Duration, String)>(urls.len());
 
@@ -34,17 +46,16 @@ async fn main() -> Result<()> {
         println!("{} received in {:?}: {}", name, duration, data);
     }
 
-    Ok(())
-}
+    Ok(())}
 
-async fn fetch_data(url: &str) -> Result<String> {
-    let client = reqwest::Client::new();
-    let response = client
-        .get(url)
-        .timeout(Duration::from_secs(3))
-        .send()
-        .await?
-        .text()
-        .await?;
-    Ok(response)
-}
+    async fn fetch_data(url: &str) -> Result<String> {
+        let client = reqwest::Client::new();
+        let response = client
+            .get(url)
+            .timeout(Duration::from_secs(3))
+            .send()
+            .await?
+            .text()
+            .await?;
+        Ok(response)
+    }
