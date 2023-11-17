@@ -2,6 +2,7 @@ use reqwest;
 use std::error::Error;
 use std::time::Duration;
 use std::thread;
+use tokio::sync::mpsc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -13,7 +14,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         "https://api.bitfinex.com/v1/pubticker/ethusd".to_string(),
         "https://api1.binance.com/api/v3/ticker/price?symbol=ETHUSDT".to_string(),
     ];
-    
+
+
     spawn_threads(urls);
     
     Ok(())

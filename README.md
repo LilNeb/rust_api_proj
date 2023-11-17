@@ -8,3 +8,4 @@ Liste des API publiques :
 - https://api1.binance.com/api/v3/ticker/price?symbol=ETHUSDT
 
 pour le front regarder YEUW
+pour faire des graphs : Plotter
