@@ -1,8 +1,8 @@
-use reqwest;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
 use tokio::task;
 use anyhow::Result;
+use rust_api_proj::fetch_data;
 
 mod utils;
 
@@ -47,15 +47,3 @@ async fn main() -> Result<()> {
     }
 
     Ok(())}
-
-    async fn fetch_data(url: &str) -> Result<String> {
-        let client = reqwest::Client::new();
-        let response = client
-            .get(url)
-            .timeout(Duration::from_secs(3))
-            .send()
-            .await?
-            .text()
-            .await?;
-        Ok(response)
-    }
