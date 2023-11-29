@@ -1,20 +1,18 @@
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio::task;
 use anyhow::Result;
-use rust_api_proj::fetch_data;
+use rust_api_proj::{format_pair, fetch_data};
 
 mod utils;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let start_time = Instant::now();
-
     
     let arg = "eth-usdt";
-    let kucoin_arg = utils::format_pair("kucoin", arg);
-    let bitfinex_arg = utils::format_pair("bitfinex", arg);
-    let binance_arg = utils::format_pair("binance", arg);
+    let kucoin_arg = format_pair("kucoin", arg);
+    let bitfinex_arg = format_pair("bitfinex", arg);
+    let binance_arg = format_pair("binance", arg);
     println!("Kucoin: {:?}", kucoin_arg);
     println!("Bitfinex: {:?}", bitfinex_arg);
     println!("Binance: {:?}", binance_arg);
@@ -30,12 +28,9 @@ async fn main() -> Result<()> {
 
     for (name, url) in urls {
         let tx_clone = tx.clone();
-        let url = url.to_string();
-        let name = name.to_string();
         task::spawn(async move {
-            if let Ok(data) = fetch_data(&url).await {
-                let duration = start_time.elapsed();
-                tx_clone.send((data, duration, name)).await.unwrap();
+            if let Ok((data, duration)) = fetch_data(&url).await {
+                let _ = tx_clone.send((format!("{}: {}", name, data), duration, name.to_string())).await;
             }
         });
     }

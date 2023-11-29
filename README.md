@@ -5,3 +5,6 @@ Liste des API publiques :
 
 pour le front regarder YEUW
 pour faire des graphs : Plotter
+
+
+TODO : faire une api pour communiquer la data au front, faire des calculs sur la data déjà existante
