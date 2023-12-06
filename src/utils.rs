@@ -5,22 +5,22 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 
 
+
 pub fn format_pair(exchange: &str, pair: &str) -> Result<String> {
     let mut split = pair.split('-');
     let first = split.next().ok_or_else(|| anyhow!("Invalid pair"))?;
     let second = split.next().ok_or_else(|| anyhow!("Invalid pair"))?;
 
-    match exchange {
-        "kucoin" => Ok(format!("{}-{}", first.to_uppercase(), second.to_uppercase())),
-        "bitfinex" => {
-            let formatted_pair = pair
-                .replace("-", "")
-                .replace("usdt", "ust")
-                .to_lowercase();
-            Ok(formatted_pair)
-        },
-        "binance" => Ok(format!("{}{}", first.to_uppercase(), second.to_uppercase())),
-        _ => Err(anyhow!("Invalid exchange")),
+    match exchange.to_lowercase().as_str() {
+        "kucoin" | "okex" | "kraken" => Ok(format!("{}-{}", first.to_uppercase(), second.to_uppercase())),
+        "bitfinex" => Ok(format!("{}{}", first.to_lowercase(), second.to_lowercase().replace("usdt", "ust"))),
+        "binance" | "huobi" | "hitbtc" | "gemini" => Ok(format!("{}{}", first.to_uppercase(), second.to_uppercase())),
+        "cex" => Ok(format!("{}/{}", first.to_uppercase(), second.to_uppercase())),
+        "coinbase" => Ok(format!("{}-{}", first.to_lowercase(), second.to_lowercase())),
+        "gate" => Ok(format!("{}_{}", first.to_lowercase(), second.to_lowercase())),
+        "cex" => Ok(format!("{}/{}", first.to_uppercase(), second.to_uppercase())),
+        // Ajoutez des cas supplémentaires pour les autres échanges
+        _ => Err(anyhow!("Unsupported exchange : {}", exchange)),
     }
 }
 
@@ -95,4 +95,90 @@ pub struct BitfinexResponse {
 pub struct BinanceResponse {
     symbol: String,
     price: String,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct HuobiResponse {
+    ch: String,
+    status: String,
+    ts: u64,
+    tick: HuobiTick,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct HuobiTick {
+    open: f64,
+    close: f64,
+    low: f64,
+    high: f64,
+    amount: f64,
+    vol: f64,
+    count: i64,
+    bid: Vec<f64>,
+    ask: Vec<f64>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct CexResponse {
+    timestamp: String,
+    low: String,
+    high: String,
+    last: String,
+    volume: String,
+    volume30d: String,
+    bid: f64,
+    ask: f64,
+    price_change: String,
+    price_change_percentage: String,
+    pair: String,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct CoinbaseResponse {
+    ask: String,
+    bid: String,
+    volume: String,
+    trade_id: i64,
+    price: String,
+    size: String,
+    time: String,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct KrakenResponse {
+    error: Vec<String>,
+    result: KrakenResult,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct KrakenResult {
+    #[serde(flatten)]
+    pub pairs: std::collections::HashMap<String, KrakenPairData>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct KrakenPairData {
+    a: Vec<String>,
+    b: Vec<String>,
+    c: Vec<String>,
+    v: Vec<String>,
+    p: Vec<String>,
+    t: Vec<i64>,
+    l: Vec<String>,
+    h: Vec<String>,
+    o: String,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct GateApiResponse {
+    quote_volume: String,
+    base_volume: String,
+    highest_bid: String,
+    high24hr: String,
+    last: String,
+    lowest_ask: String,
+    elapsed: String,
+    result: String,
+    low24hr: String,
+    percent_change: String,
 }
