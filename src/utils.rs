@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 
 
-
 pub fn format_pair(exchange: &str, pair: &str) -> Result<String> {
     let mut split = pair.split('-');
     let first = split.next().ok_or_else(|| anyhow!("Invalid pair"))?;
@@ -24,39 +23,45 @@ pub fn format_pair(exchange: &str, pair: &str) -> Result<String> {
     }
 }
 
-pub async fn fetch_data(url: &str) -> Result<(String, Duration)> {
+pub async fn fetch_data(url: &str) -> Result<((String, String), Duration)> {
     let client = reqwest::Client::new();
     let start_time = Instant::now();
 
     let response = client
         .get(url)
-        .timeout(Duration::from_secs(3))
         .send()
         .await?
         .text()
         .await?;
 
-    let duration = start_time.elapsed();
-
+    //println!("Response from url {}: {}", url, response);
+    
+    
     let parsed_data = if url.contains("kucoin.com") {
         let data: KucoinData = serde_json::from_str(&response)
             .context("Failed to parse Kucoin response")?;
-        data.data.best_ask // Exemple: sélectionner le champ 'price' pour Kucoin
+        // Replace these fields with the two values you need
+        (data.data.best_ask, data.data.best_bid)
     } else if url.contains("bitfinex.com") {
         let data: BitfinexResponse = serde_json::from_str(&response)
             .context("Failed to parse Bitfinex response")?;
-        data.ask // Exemple: sélectionner le champ 'last_price' pour Bitfinex
+        // Replace these fields with the two values you need
+        (data.ask.clone(), data.bid.clone())
     } else if url.contains("binance.com") {
         let data: BinanceResponse = serde_json::from_str(&response)
             .context("Failed to parse Binance response")?;
-        data.price // Exemple: sélectionner le champ 'price' pour Binance
+        (data.bids[0][0].clone(), data.asks[0][0].clone())
     } else {
         return Err(anyhow!("Unsupported URL"));
     };
-
+    let duration = start_time.elapsed();
     Ok((parsed_data, duration))
 }
 
+
+
+
+// Structures de données pour les réponses des différentes API
 #[derive(Deserialize, Serialize, Debug)]
 pub struct KucoinData {
     code: String,
@@ -93,8 +98,10 @@ pub struct BitfinexResponse {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct BinanceResponse {
-    symbol: String,
-    price: String,
+    #[serde(rename = "lastUpdateId")]
+    last_update_id: u64,
+    bids: Vec<Vec<String>>,
+    asks: Vec<Vec<String>>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
