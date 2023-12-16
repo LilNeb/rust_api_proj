@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result, Context};
+use anyhow::{anyhow, Result};
 use std::time::{Duration, Instant};
 use reqwest;
 use serde::{Deserialize, Serialize};
@@ -11,14 +11,13 @@ pub fn format_pair(exchange: &str, pair: &str) -> Result<String> {
     let second = split.next().ok_or_else(|| anyhow!("Invalid pair"))?;
 
     match exchange.to_lowercase().as_str() {
-        "kucoin" | "okex" | "kraken" => Ok(format!("{}-{}", first.to_uppercase(), second.to_uppercase())),
+        "kucoin" | "okex" => Ok(format!("{}-{}", first.to_uppercase(), second.to_uppercase())),
         "bitfinex" => Ok(format!("{}{}", first.to_lowercase(), second.to_lowercase().replace("usdt", "ust"))),
-        "binance" | "huobi" | "hitbtc" | "gemini" => Ok(format!("{}{}", first.to_uppercase(), second.to_uppercase())),
+        "binance" | "hitbtc" | "gemini" | "kraken" => Ok(format!("{}{}", first.to_uppercase(), second.to_uppercase())),
         "cex" => Ok(format!("{}/{}", first.to_uppercase(), second.to_uppercase())),
         "coinbase" => Ok(format!("{}-{}", first.to_lowercase(), second.to_lowercase())),
         "gate" => Ok(format!("{}_{}", first.to_lowercase(), second.to_lowercase())),
-        "cex" => Ok(format!("{}/{}", first.to_uppercase(), second.to_uppercase())),
-        // Ajoutez des cas supplémentaires pour les autres échanges
+        "huobi" => Ok(format!("{}{}", first.to_lowercase(), second.to_lowercase())),
         _ => Err(anyhow!("Unsupported exchange : {}", exchange)),
     }
 }
@@ -29,38 +28,59 @@ pub async fn fetch_data(url: &str) -> Result<((String, String), Duration)> {
 
     let response = client
         .get(url)
+        .header("User-Agent", "Mozilla/5.0")
         .send()
         .await?
         .text()
         .await?;
 
-    //println!("Response from url {}: {}", url, response);
-    
-    
+    // if url.contains("gate") {
+    //     println!("gate Response: {}", response);
+    // }
     let parsed_data = if url.contains("kucoin.com") {
-        let data: KucoinData = serde_json::from_str(&response)
-            .context("Failed to parse Kucoin response")?;
-        // Replace these fields with the two values you need
+        let data: KucoinData = serde_json::from_str(&response)?;
+        //println!("Kucoin Data: {:?}", data);
         (data.data.best_ask, data.data.best_bid)
     } else if url.contains("bitfinex.com") {
-        let data: BitfinexResponse = serde_json::from_str(&response)
-            .context("Failed to parse Bitfinex response")?;
-        // Replace these fields with the two values you need
-        (data.ask.clone(), data.bid.clone())
+        let data: BitfinexResponse = serde_json::from_str(&response)?;
+        //println!("Bitfinex Data: {:?}", data);
+        (data.ask, data.bid)
     } else if url.contains("binance.com") {
-        let data: BinanceResponse = serde_json::from_str(&response)
-            .context("Failed to parse Binance response")?;
+        let data: BinanceResponse = serde_json::from_str(&response)?;
+        //println!("Binance Data: {:?}", data);
         (data.bids[0][0].clone(), data.asks[0][0].clone())
+    } else if url.contains("huobi.pro") {
+        let data: HuobiResponse = serde_json::from_str(&response)?;
+        (data.tick.ask[0].to_string(), data.tick.bid[0].to_string())
+    } else if url.contains("cex.io") {
+        let data: CexResponse = serde_json::from_str(&response)?;
+        //println!("Cex Data: {:?}", data);
+        (data.bid.to_string(), data.ask.to_string())
+    } else if url.contains("coinbase.com") {
+        let data: CoinbaseResponse = serde_json::from_str(&response)?;
+        //println!("Coinbase Data: {:?}", data);
+        (data.bid, data.ask)
+    } else if url.contains("kraken.com") {
+        let data: KrakenResponse = serde_json::from_str(&response)?;
+        // println!("Kraken Data: {:?}", data);
+        // Exemple pour Kraken, ajustez selon la paire de devises spécifique
+        let pair_data = data.result.pairs.get("ETHUSDT").unwrap();
+        (pair_data.b[0].clone(), pair_data.a[0].clone())
+    } else if url.contains("gateapi.io") {
+        let data: GateApiResponse = serde_json::from_str(&response)?;
+        //println!("Gate Data: {:?}", data);
+        (data.highest_bid, data.lowest_ask)
     } else {
         return Err(anyhow!("Unsupported URL"));
     };
+
     let duration = start_time.elapsed();
     Ok((parsed_data, duration))
 }
 
 
 
-
+    
 // Structures de données pour les réponses des différentes API
 #[derive(Deserialize, Serialize, Debug)]
 pub struct KucoinData {
@@ -114,13 +134,15 @@ pub struct HuobiResponse {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct HuobiTick {
+    id: u64,
+    version: u64,
     open: f64,
     close: f64,
     low: f64,
     high: f64,
     amount: f64,
     vol: f64,
-    count: i64,
+    count: u64,
     bid: Vec<f64>,
     ask: Vec<f64>,
 }
@@ -135,7 +157,9 @@ pub struct CexResponse {
     volume30d: String,
     bid: f64,
     ask: f64,
+    #[serde(rename = "priceChange")]
     price_change: String,
+    #[serde(rename = "priceChangePercentage")]
     price_change_percentage: String,
     pair: String,
 }
@@ -178,14 +202,19 @@ pub struct KrakenPairData {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct GateApiResponse {
+    #[serde(rename = "quoteVolume")]
     quote_volume: String,
+    #[serde(rename = "baseVolume")]
     base_volume: String,
+    #[serde(rename = "highestBid")]
     highest_bid: String,
     high24hr: String,
     last: String,
+    #[serde(rename = "lowestAsk")]
     lowest_ask: String,
     elapsed: String,
     result: String,
     low24hr: String,
+    #[serde(rename = "percentChange")]
     percent_change: String,
 }

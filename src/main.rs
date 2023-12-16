@@ -21,16 +21,16 @@ async fn main() -> Result<()> {
     let hitbtc_arg = format_pair("hitbtc", arg)?;
     let okex_arg = format_pair("okex", arg)?;
 
-    println!("Kucoin: {:?}", kucoin_arg);
-    println!("Bitfinex: {:?}", bitfinex_arg);
-    println!("Binance: {:?}", binance_arg);
-    println!("Cex: {:?}", cex_arg);
-    println!("Coinbase: {:?}", coinbase_arg);
-    println!("Kraken: {:?}", kraken_arg);
-    println!("Huobi: {:?}", huobi_arg);
-    println!("Gate: {:?}", gate_arg);
-    println!("Hitbtc: {:?}", hitbtc_arg);
-    println!("Okex: {:?}", okex_arg);
+    // println!("Kucoin: {:?}", kucoin_arg);
+    // println!("Bitfinex: {:?}", bitfinex_arg);
+    // println!("Binance: {:?}", binance_arg);
+    // println!("Cex: {:?}", cex_arg);
+    // println!("Coinbase: {:?}", coinbase_arg);
+    // println!("Kraken: {:?}", kraken_arg);
+    // println!("Huobi: {:?}", huobi_arg);
+    // println!("Gate: {:?}", gate_arg);
+    // println!("Hitbtc: {:?}", hitbtc_arg);
+    // println!("Okex: {:?}", okex_arg);
 
 
     let urls = vec![
@@ -61,7 +61,7 @@ async fn main() -> Result<()> {
     drop(tx); // Close the channel
     
     while let Some((((data1, data2), duration), name)) = rx.recv().await {
-        println!("{} received in {:?}: {} and {}", name, duration, data1, data2);
+        println!("{} received in {:?}: highest bid : [{}] lowest ask : [{}]", name, duration, data1, data2);
     }
     
     
