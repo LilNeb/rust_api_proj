@@ -3,6 +3,7 @@ use std::time::{Duration, Instant};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use serde_json;
+use chrono::{DateTime, NaiveDateTime, Utc, TimeZone}; // Import the Utc trait
 
 
 pub fn format_pair(exchange: &str, pair: &str) -> Result<String> {
@@ -10,16 +11,20 @@ pub fn format_pair(exchange: &str, pair: &str) -> Result<String> {
     let first = split.next().ok_or_else(|| anyhow!("Invalid pair"))?;
     let second = split.next().ok_or_else(|| anyhow!("Invalid pair"))?;
 
-    match exchange.to_lowercase().as_str() {
-        "kucoin" | "okex" => Ok(format!("{}-{}", first.to_uppercase(), second.to_uppercase())),
-        "bitfinex" => Ok(format!("{}{}", first.to_lowercase(), second.to_lowercase().replace("usdt", "ust"))),
-        "binance" | "hitbtc" | "gemini" | "kraken" => Ok(format!("{}{}", first.to_uppercase(), second.to_uppercase())),
-        "cex" => Ok(format!("{}/{}", first.to_uppercase(), second.to_uppercase())),
-        "coinbase" => Ok(format!("{}-{}", first.to_lowercase(), second.to_lowercase())),
-        "gate" => Ok(format!("{}_{}", first.to_lowercase(), second.to_lowercase())),
-        "huobi" => Ok(format!("{}{}", first.to_lowercase(), second.to_lowercase())),
-        _ => Err(anyhow!("Unsupported exchange : {}", exchange)),
-    }
+    let formatted_pair = match exchange.to_lowercase().as_str() {
+        "kucoin" | "okex" => format!("{}-{}", first.to_uppercase(), second.to_uppercase()),
+        "bitfinex" => format!("{}{}", first.to_lowercase(), second.to_lowercase().replace("usdt", "ust")),
+        "binance" | "hitbtc" | "gemini" | "kraken" => format!("{}{}", first.to_uppercase(), second.to_uppercase()),
+        "cex" => format!("{}/{}", first.to_uppercase(), second.to_uppercase()),
+        "coinbase" => format!("{}-{}", first.to_lowercase(), second.to_lowercase()),
+        "gate" => format!("{}_{}", first.to_lowercase(), second.to_lowercase()),
+        "huobi" => format!("{}{}", first.to_lowercase(), second.to_lowercase()),
+        _ => return Err(anyhow!("Unsupported exchange : {}", exchange)),
+    };
+
+    // println!("Formatted pair for {} : {}", exchange, formatted_pair);
+
+    Ok(formatted_pair)
 }
 
 pub async fn fetch_data(url: &str) -> Result<((String, String), Duration)> {
@@ -76,6 +81,12 @@ pub async fn fetch_data(url: &str) -> Result<((String, String), Duration)> {
 
     let duration = start_time.elapsed();
     Ok((parsed_data, duration))
+}
+
+fn convert_unix_timestamp(timestamp: u64) -> String {
+    let naive_datetime = NaiveDateTime::from_timestamp_opt(timestamp as i64, 0).expect("Invalid timestamp");
+    let datetime: DateTime<Utc> = Utc.from_utc_datetime(&naive_datetime);
+    datetime.format("%Y-%m-%d %H:%M:%S").to_string()
 }
 
 
@@ -217,4 +228,13 @@ pub struct GateApiResponse {
     low24hr: String,
     #[serde(rename = "percentChange")]
     percent_change: String,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct MarketData {
+    pub timestamp: String,
+    pub name: String,
+    pub duration: Duration,
+    pub highest_bid: String,
+    pub lowest_ask: String,
 }

@@ -3,12 +3,17 @@ use tokio::sync::mpsc;
 use tokio::task;
 use anyhow::Result;
 use crate::utils::{format_pair, fetch_data};
+use crate::utils::MarketData;
+use chrono::Utc;
+
 mod utils;
 
 //TODO : Gérer nouvelles urls dans fetch_data, et renvoyer ask et bid pour les traiter plus tard
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    
+
     let arg = "eth-usdt";
     let kucoin_arg = format_pair("kucoin", arg)?;
     let bitfinex_arg = format_pair("bitfinex", arg)?;
@@ -20,17 +25,6 @@ async fn main() -> Result<()> {
     let gate_arg = format_pair("gate", arg)?;
     let hitbtc_arg = format_pair("hitbtc", arg)?;
     let okex_arg = format_pair("okex", arg)?;
-
-    // println!("Kucoin: {:?}", kucoin_arg);
-    // println!("Bitfinex: {:?}", bitfinex_arg);
-    // println!("Binance: {:?}", binance_arg);
-    // println!("Cex: {:?}", cex_arg);
-    // println!("Coinbase: {:?}", coinbase_arg);
-    // println!("Kraken: {:?}", kraken_arg);
-    // println!("Huobi: {:?}", huobi_arg);
-    // println!("Gate: {:?}", gate_arg);
-    // println!("Hitbtc: {:?}", hitbtc_arg);
-    // println!("Okex: {:?}", okex_arg);
 
 
     let urls = vec![
@@ -60,9 +54,20 @@ async fn main() -> Result<()> {
     
     drop(tx); // Close the channel
     
+    let mut market_data_list: Vec<MarketData> = Vec::new();
+
     while let Some((((data1, data2), duration), name)) = rx.recv().await {
-        println!("{} received in {:?}: highest bid : [{}] lowest ask : [{}]", name, duration, data1, data2);
+        let market_data = MarketData {
+            timestamp: Utc::now().timestamp().to_string(),
+            name,
+            duration,
+            highest_bid: data1,
+            lowest_ask: data2,
+        };
+        market_data_list.push(market_data);
     }
+
+    println!("Market Data List: {:?}", market_data_list);
     
     
     Ok(())
