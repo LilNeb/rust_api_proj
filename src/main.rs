@@ -4,14 +4,28 @@ use tokio::task;
 use anyhow::Result;
 use crate::utils::{format_pair, fetch_data};
 use crate::utils::MarketData;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
+use rusqlite::{params, Connection};
 
 mod utils;
 
 //TODO : Gérer nouvelles urls dans fetch_data, et renvoyer ask et bid pour les traiter plus tard
 
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    let conn = Connection::open("src/market_data.db")?;
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS market_data (
+            timestamp TEXT,
+            name TEXT,
+            duration INTEGER,
+            highest_bid TEXT,
+            lowest_ask TEXT
+        )",
+        [],
+    )?;
     
 
     let arg = "eth-usdt";
@@ -59,16 +73,22 @@ async fn main() -> Result<()> {
     while let Some((((data1, data2), duration), name)) = rx.recv().await {
         let market_data = MarketData {
             timestamp: Utc::now().timestamp().to_string(),
-            name,
+            name: name.split_whitespace().next().unwrap_or("").to_string(),
             duration,
             highest_bid: data1,
             lowest_ask: data2,
         };
         market_data_list.push(market_data);
     }
+    println!("Market Data List : {:?}", market_data_list);
 
-    println!("Market Data List: {:?}", market_data_list);
-    
-    
+    for data in &market_data_list {
+        conn.execute(
+            "INSERT INTO market_data (timestamp, name, duration, highest_bid, lowest_ask) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![data.timestamp, data.name, data.duration.as_millis() as i64, data.highest_bid, data.lowest_ask],
+        )?;
+    }
+
     Ok(())
 }
+    

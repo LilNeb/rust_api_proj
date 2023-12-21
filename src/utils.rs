@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use chrono::{DateTime, NaiveDateTime, Utc, TimeZone}; // Import the Utc trait
+use chrono::{DateTime, NaiveDateTime, Utc, Time}; // Import the Utc trait
 
 
 pub fn format_pair(exchange: &str, pair: &str) -> Result<String> {
@@ -83,12 +83,11 @@ pub async fn fetch_data(url: &str) -> Result<((String, String), Duration)> {
     Ok((parsed_data, duration))
 }
 
-fn convert_unix_timestamp(timestamp: u64) -> String {
-    let naive_datetime = NaiveDateTime::from_timestamp_opt(timestamp as i64, 0).expect("Invalid timestamp");
-    let datetime: DateTime<Utc> = Utc.from_utc_datetime(&naive_datetime);
-    datetime.format("%Y-%m-%d %H:%M:%S").to_string()
-}
-
+// fn convert_unix_timestamp(timestamp: u64) -> String {
+//     let naive_datetime = NaiveDateTime::from_timestamp_opt(timestamp as i64, 0).expect("Invalid timestamp");
+//     let datetime: DateTime<Utc> = Utc.from_utc_datetime(&naive_datetime);
+//     datetime.format("%Y-%m-%d %H:%M:%S").to_string()
+// }
 
 
     
