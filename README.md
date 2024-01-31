@@ -1,10 +1,30 @@
-Liste des API publiques : 
-- https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=ETH-USDT
-- https://api.bitfinex.com/v1/pubticker/ethusd
-- https://api1.binance.com/api/v3/ticker/price?symbol=ETHUSDT
-
-pour le front regarder YEUW
-pour faire des graphs : Plotter
+# Comment utiliser
 
 
-TODO : faire une api pour communiquer la data au front, faire des calculs sur la data déjà existante
+## Setup un cron 
+
+
+`crontab -e`
+
+rajouter une ligne commande dans le cron :
+
+`* * * * * ./[path to binary]`
+
+ex :
+
+`* * * * * /Users/username/Documents/Projets/rust_api_proj/target/release/rust_api_proj`
+
+
+comment avoir le fichier binaire : 
+
+`cargo build --release`
+
+## Run le front
+
+Une fois suffisament de données recoltées (sinon les graphs n'auront pas de sens)
+
+Se placer dans le fichier front_end
+
+`trunk serve` 
+
+Se rendre sur l'url imprimée

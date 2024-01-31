@@ -1,0 +1,15 @@
+[package]
+name = "rust-front"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+plotters = "0.3.5"
+rusqlite = "0.30.0"
+yew = { version = "0.20.0", features = ["csr"] }
+
+[dependencies.web-sys]
+version = "0.3"
+features = ['HtmlSelectElement']

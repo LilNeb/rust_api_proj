@@ -1,0 +1,16 @@
+#exchange-select {
+    font-size: 16px;
+    margin: 10px;
+}
+
+img {
+    width: 80%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+p {
+    color: blue;
+    font-size: 18px;
+}

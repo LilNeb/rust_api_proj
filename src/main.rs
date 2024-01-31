@@ -4,17 +4,17 @@ use tokio::task;
 use anyhow::Result;
 use crate::utils::{format_pair, fetch_data};
 use crate::utils::MarketData;
-use chrono::{DateTime, Utc};
+use chrono::{Utc};
 use rusqlite::{params, Connection};
 
-mod utils;
 
-//TODO : Gérer nouvelles urls dans fetch_data, et renvoyer ask et bid pour les traiter plus tard
+mod utils;
+mod plotter;
 
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let conn = Connection::open("src/market_data.db")?;
+    let conn = Connection::open("src/market_data.sqlite")?;
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS market_data (
@@ -66,7 +66,7 @@ async fn main() -> Result<()> {
         });
     }
     
-    drop(tx); // Close the channel
+    drop(tx);
     
     let mut market_data_list: Vec<MarketData> = Vec::new();
 
@@ -88,6 +88,12 @@ async fn main() -> Result<()> {
             params![data.timestamp, data.name, data.duration.as_millis() as i64, data.highest_bid, data.lowest_ask],
         )?;
     }
+
+    for market_data in market_data_list {
+        let _ = plotter::draw_plot(&conn, &market_data.name);
+    }
+     let _ = plotter::draw_plot(&conn, "All");
+
 
     Ok(())
 }
